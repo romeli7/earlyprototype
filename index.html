@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapping Value Creation & Loss in Morocco's Phosphate Industry</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="map"></div>
+    
+    <!-- Product Mode Selector -->
+    <div id="productMode" class="control-panel">
+        <h3>Product Mode</h3>
+        <select id="productSelector">
+            <option value="bulk">Bulk Fertilizers (HS 3105)</option>
+            <option value="chemicals">Phosphate Chemicals (HS 2835)</option>
+            <option value="specialty">Specialty Derivatives (HS 283524)</option>
+        </select>
+    </div>
+    
+    <!-- Controls -->
+    <div id="controls" class="control-panel">
+        <h3>Display Options</h3>
+        <label>
+            <input type="checkbox" id="showSites" checked> Show Sites
+        </label>
+        <label>
+            <input type="checkbox" id="showFlows" checked> Show Flows
+        </label>
+        <label>
+            <input type="checkbox" id="transformationCeiling"> Transformation Ceiling
+        </label>
+        <button id="storyMode" class="story-btn">Story Mode</button>
+    </div>
+    
+    <!-- Legend -->
+    <div id="legend" class="control-panel">
+        <h3>Legend</h3>
+        <div class="legend-section">
+            <h4>Site Types</h4>
+            <div class="legend-item">
+                <span class="legend-marker mine"></span> Mine
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker chemical-hub"></span> Chemical Hub
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker logistics"></span> Logistics Node
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker anchor"></span> Partner Country
+            </div>
+        </div>
+        <div class="legend-section">
+            <h4>Flow Types</h4>
+            <div class="legend-item">
+                <span class="legend-line export"></span> Export (bulk products)
+            </div>
+            <div class="legend-item">
+                <span class="legend-line import"></span> Import (specialty derivatives)
+            </div>
+            <div class="legend-item">
+                <span class="legend-line domestic"></span> Domestic (logistics)
+            </div>
+            <div class="legend-note">
+                * Flows are schematic, not volumetric
+            </div>
+        </div>
+        <div class="legend-section">
+            <h4>Stages</h4>
+            <div id="stageDefinitions"></div>
+        </div>
+    </div>
+    
+    <!-- Profile Card Panel -->
+    <div id="profilePanel" class="profile-panel">
+        <button id="closeProfile" class="close-btn">&times;</button>
+        <div id="profileContent"></div>
+    </div>
+    
+    <!-- Story Mode Panel -->
+    <div id="storyPanel" class="story-panel">
+        <button id="closeStory" class="close-btn">&times;</button>
+        <div id="storyContent">
+            <h3>Story Mode</h3>
+            <div id="storySteps">
+                <div class="story-step" data-step="1">
+                    <h4>Step 1: Extraction Basins</h4>
+                    <p>Morocco's phosphate mining operations in the northern and southern regions.</p>
+                </div>
+                <div class="story-step" data-step="2">
+                    <h4>Step 2: Domestic Logistics</h4>
+                    <p>Internal transport networks connecting mines to processing facilities.</p>
+                </div>
+                <div class="story-step" data-step="3">
+                    <h4>Step 3: Coastal Processing Hubs</h4>
+                    <p>Industrial platforms where phosphate rock is transformed into bulk products.</p>
+                </div>
+                <div class="story-step" data-step="4">
+                    <h4>Step 4: Global Bulk Exports</h4>
+                    <p>Morocco exports bulk fertilizers and chemicals to partners worldwide.</p>
+                </div>
+                <div class="story-step" data-step="5">
+                    <h4>Step 5: Transformation Ceiling</h4>
+                    <p>High-value specialty derivatives are produced abroad and re-imported.</p>
+                </div>
+            </div>
+            <div id="storyControls">
+                <button id="prevStep" class="story-nav-btn">← Previous</button>
+                <span id="stepIndicator">Step 1/5</span>
+                <button id="nextStep" class="story-nav-btn">Next →</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sources & Data Basis Toggle -->
+    <div id="sourcesToggle" class="sources-toggle">
+        <h4>Sources & Data Basis</h4>
+        <span class="toggle-icon">▼</span>
+    </div>
+    
+    <!-- Sources Panel -->
+    <div id="sourcesPanel" class="sources-panel" style="display: none;">
+        <div class="panel-header">
+            <h3>Sources & Data Basis</h3>
+            <button id="closeSources" class="close-btn">×</button>
+        </div>
+        <div class="panel-content">
+            <div class="sources-note">
+                <strong>Methodological Note:</strong> This visualization uses evidence-based trade data from UN Comtrade (via World Bank WITS) and OEC to identify major phosphate product flows. Partner countries are selected based on actual import/export volumes for relevant HS codes (3105 for bulk fertilizers, 2835 for phosphate chemicals, 283524 for specialty derivatives). Geographic placement is schematic for clarity - not volumetric. The "transformation ceiling" concept illustrates where Morocco's domestic value creation capabilities end and where higher-value downstream processing occurs abroad.
+            </div>
+            <div class="sources-links">
+                <div class="sources-section">
+                    <h4>Global Trade & Economic Data</h4>
+                    <a href="https://wits.worldbank.org/" target="_blank">World Bank WITS - Trade Statistics</a>
+                    <a href="https://comtrade.un.org/" target="_blank">UN Comtrade Database</a>
+                    <a href="https://oec.world/" target="_blank">Observatory of Economic Complexity (OEC)</a>
+                    <a href="https://www.usgs.gov/centers/national-minerals-information-center" target="_blank">USGS Mineral Commodity Summaries</a>
+                </div>
+                <div class="sources-section">
+                    <h4>Morocco & Industry Sources</h4>
+                    <a href="https://www.ocpgroup.ma/" target="_blank">OCP Group Official</a>
+                    <a href="https://www.phosboucraa.com/" target="_blank">Phosboucraa (Southern Operations)</a>
+                    <a href="https://www.fertilizer.org/" target="_blank">International Fertilizer Association (IFA)</a>
+                    <a href="https://www.prnewswire.com/news-releases/list/company/ocp-group" target="_blank">OCP Group Press Releases</a>
+                </div>
+                <div class="sources-section">
+                    <h4>Product Classification (HS Codes)</h4>
+                    <a href="https://wits.worldbank.org/HSproduct.aspx?product=3105" target="_blank">HS 3105 - Mineral or chemical fertilizers</a>
+                    <a href="https://wits.worldbank.org/HSproduct.aspx?product=2835" target="_blank">HS 2835 - Phosphates of metals</a>
+                    <a href="https://wits.worldbank.org/HSproduct.aspx?product=283524" target="_blank">HS 283524 - Trisodium phosphate</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-note">
+            Mapping Value Creation & Loss in Morocco's Phosphate Industry | Analytical Prototype v2.0
+        </div>
+    </footer>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
