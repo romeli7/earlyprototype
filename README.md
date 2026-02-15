@@ -59,10 +59,8 @@ The aim is to reveal how far Morocco's industrial transformation currently goes 
 
 ## License
 
-This visualization is provided for educational and research purposes.
+This visualization is provided for educational and research purposes. For inquiries, contact: ro.elidrissi1@gmail.com
 
 ---
 
 **Live visualization**: [View the interactive map](https://romeli7.github.io/earlyprototype/)
-
-This visualization is provided for educational and research purposes. For inquiries, contact: ro.elidrissi1@gmail.com
