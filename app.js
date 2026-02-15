@@ -1,802 +1,548 @@
-// Comprehensive Morocco Phosphate Industry Visualization v2.0
-// Evidence-based partner countries from UN Comtrade/WITS/OEC data
+/* ===============================
+   LOAD EXTERNAL TRADE DATA
+   =============================== */
+let TRADE_DATA = {};
 
-// Global variables
-let map;
-let sitesLayer;
-let flowsLayer;
-let currentProductMode = 'bulk';
-let currentStoryStep = 0;
-let highlightedLayer = null;
-
-// Site data including southern Morocco coverage
-const SITES = {
-    "type": "FeatureCollection",
-    "features": [
-        // Northern Morocco sites
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "khouribga",
-                "name": "Khouribga",
-                "type": "mine",
-                "stage": "extraction",
-                "operator": "OCP Group",
-                "region": "northern",
-                "note": "World's largest phosphate mining basin; core upstream node in Morocco's phosphate chain."
-            },
-            "geometry": { "type": "Point", "coordinates": [-6.9063, 32.8811] }
+// Load external trade data file
+fetch('data/trade_flows.json')
+  .then(response => response.json())
+  .then(data => {
+    // Convert external format to internal format
+    TRADE_DATA = {
+      exports: {
+        phosphoric_acid: {
+          label: data.phosphoric_acid.product_label,
+          year: data.phosphoric_acid.year,
+          partners: data.phosphoric_acid.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd
+          }))
         },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "benguerir",
-                "name": "Benguerir (Gantour)",
-                "type": "mine",
-                "stage": "extraction",
-                "operator": "OCP Group",
-                "region": "northern",
-                "note": "Mining site in Gantour basin; feeds downstream processing."
-            },
-            "geometry": { "type": "Point", "coordinates": [-7.95397, 32.24088] }
+        phosphate_rock_raw: {
+          label: data.phosphate_rock_raw.product_label,
+          year: data.phosphate_rock_raw.year,
+          partners: data.phosphate_rock_raw.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd
+          }))
         },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "youssoufia",
-                "name": "Youssoufia (Gantour)",
-                "type": "mine",
-                "stage": "extraction",
-                "operator": "OCP Group",
-                "region": "northern",
-                "note": "Mining town associated with phosphate extraction in the Gantour basin."
-            },
-            "geometry": { "type": "Point", "coordinates": [-8.52941, 32.2463] }
-        },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "jorf_lasfar_port",
-                "name": "Jorf Lasfar (Port & Chemical Platform)",
-                "type": "chemical_hub",
-                "stage": "bulk_fertilizer",
-                "operator": "OCP Group",
-                "region": "northern",
-                "note": "Major coastal industrial platform connected to Khouribga by slurry pipeline; bulk transformation + exports."
-            },
-            "geometry": { "type": "Point", "coordinates": [-8.62028, 33.1267] }
-        },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "safi",
-                "name": "Safi (Chemical Platform)",
-                "type": "chemical_hub",
-                "stage": "bulk_fertilizer",
-                "operator": "OCP Group",
-                "region": "northern",
-                "note": "Coastal processing hub associated with chemical production and fertilizer output."
-            },
-            "geometry": { "type": "Point", "coordinates": [-9.23718, 32.29939] }
-        },
-        // Southern Morocco sites (Western Sahara region)
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "bou_craa",
-                "name": "Bou Craa",
-                "type": "mine",
-                "stage": "extraction",
-                "operator": "Phosboucraa (OCP Group)",
-                "region": "southern",
-                "note": "Major phosphate mining operation in southern regions; part of disputed Western Sahara territory."
-            },
-            "geometry": { "type": "Point", "coordinates": [-13.0, 26.0] }
-        },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "laayoune",
-                "name": "Laâyoune (Logistics Hub)",
-                "type": "logistics",
-                "stage": "processing",
-                "operator": "Phosboucraa (OCP Group)",
-                "region": "southern",
-                "note": "Industrial and logistics node connecting southern mines to export chains."
-            },
-            "geometry": { "type": "Point", "coordinates": [-15.0, 27.0] }
-        },
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "laayoune_export",
-                "name": "Laâyoune Export Point",
-                "type": "logistics",
-                "stage": "export",
-                "operator": "Phosboucraa (OCP Group)",
-                "region": "southern",
-                "note": "Export terminal for southern phosphate production."
-            },
-            "geometry": { "type": "Point", "coordinates": [-17.0, 27.5] }
+        fertilizers_bulk: {
+          label: data.fertilizers_bulk.product_label,
+          year: data.fertilizers_bulk.year,
+          partners: data.fertilizers_bulk.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd
+          }))
         }
-    ]
+      },
+      imports: {
+        specialty: {
+          label: "Specialty phosphates (higher-value, imported)",
+          year: 2022,
+          partners: [
+            { country:"China", valueKUSD:1463.17, qtyKg:740825 },
+            { country:"Israel", valueKUSD:346.00, qtyKg:136059 },
+            { country:"European Union", valueKUSD:173.37, qtyKg:79159 },
+            { country:"Belgium", valueKUSD:140.79, qtyKg:72000 },
+            { country:"Spain", valueKUSD:23.70, qtyKg:6225 },
+            { country:"Germany", valueKUSD:8.84, qtyKg:955 },
+            { country:"Netherlands", valueKUSD:0.09, qtyKg:28 }
+          ]
+        }
+      }
+    };
+    
+    // Initialize map after data loads
+    initializeApp();
+  })
+  .catch(error => {
+    console.error('Error loading trade data:', error);
+    // Fallback to basic initialization
+    initializeApp();
+  });
+
+function initializeApp() {
+  rebuildCategories();
+  drawSites();
+  render();
+  map.setView([31.8, -6.0], 3);
+}
+
+/* ==========================================
+   PARTNER CENTROIDS (fallback, approximate)
+   (prevents "random island" placement)
+   ========================================== */
+// Only needed if Natural Earth fetch is blocked.
+// These are approximate country centroids (lat, lng).
+const PARTNER_CENTROIDS = {
+  "Brazil": [-10.0, -55.0],
+  "Australia": [-25.0, 133.0],
+  "Canada": [56.0, -106.0],
+  "Argentina": [-38.0, -64.0],
+  "United States": [39.0, -98.0],
+  "Paraguay": [-23.4, -58.4],
+  "Uruguay": [-32.8, -56.0],
+  "Namibia": [-22.6, 17.1],
+  "Slovenia": [46.1, 14.9],
+  "Chile": [-35.7, -71.5],
+  "Italy": [42.8, 12.5],
+  "Spain": [40.4, -3.7],
+  "Lithuania": [55.3, 23.9],
+  "Latvia": [56.9, 24.6],
+  "Bulgaria": [42.7, 25.5],
+  "Zambia": [-13.1, 27.8],
+  "Poland": [52.1, 19.4],
+  "France": [46.2, 2.2],
+  "Turkey": [39.0, 35.0],
+  "Japan": [36.2, 138.2],
+  "Ukraine": [49.0, 31.0],
+  "Portugal": [39.6, -8.0],
+  "Colombia": [4.5, -74.0],
+  "Romania": [45.9, 24.9],
+  "Belgium": [50.6, 4.7],
+  "Bolivia": [-16.3, -63.6],
+  "Angola": [-12.3, 17.6],
+  "Sweden": [62.0, 15.0],
+  "Germany": [51.2, 10.4],
+  "Slovak Republic": [48.7, 19.7],
+  "Croatia": [45.1, 15.2],
+  "Nicaragua": [12.9, -85.0],
+  "Czech Republic": [49.8, 15.5],
+  "Guatemala": [15.8, -90.2],
+  "Dominican Republic": [18.7, -70.2],
+  "Malawi": [-13.2, 34.3],
+  "Estonia": [58.6, 25.0],
+  "Lebanon": [33.9, 35.8],
+  "United Kingdom": [55.4, -3.4],
+  "Moldova": [47.2, 28.4],
+  "Peru": [-9.2, -75.0],
+  "India": [22.0, 79.0],
+  "Malaysia": [4.2, 102.0],
+  "Ecuador": [-1.4, -78.4],
+  "Azerbaijan": [40.1, 47.5],
+  "Mauritania": [20.3, -10.3],
+  "Saudi Arabia": [23.9, 45.1],
+  "North Macedonia": [41.6, 21.7],
+  "Bosnia and Herzegovina": [44.2, 17.7],
+  "Senegal": [14.5, -14.4],
+  "China": [35.0, 103.0],
+  "Thailand": [15.8, 101.0],
+  "Mexico": [23.6, -102.5],
+  "Austria": [47.5, 14.5],
+  "Israel": [31.0, 35.0],
+  "Netherlands": [52.2, 5.3],
+  // New countries from trade_flows.json
+  "Pakistan": [30.4, 69.3],
+  "Norway": [60.5, 8.5],
+  "New Zealand": [-40.9, 174.9],
+  "Indonesia": [-0.8, 113.9]
 };
 
-// Export partner countries by product mode (evidence-based from WITS/OEC)
-const EXPORT_PARTNERS = {
-    bulk: [
-        { id: "brazil", name: "Brazil", coords: [-55.0, -10.0], hs_code: "3105", role: "Major fertilizer importer" },
-        { id: "argentina", name: "Argentina", coords: [-64.0, -38.0], hs_code: "3105", role: "Agricultural market" },
-        { id: "mexico", name: "Mexico", coords: [-102.0, 23.0], hs_code: "3105", role: "Key fertilizer market" },
-        { id: "colombia", name: "Colombia", coords: [-74.0, 4.0], hs_code: "3105", role: "Agricultural sector" },
-        { id: "peru", name: "Peru", coords: [-75.0, -9.0], hs_code: "3105", role: "Mining/agriculture" },
-        { id: "india", name: "India", coords: [77.0, 20.0], hs_code: "310540", role: "World's largest fertilizer importer" },
-        { id: "bangladesh", name: "Bangladesh", coords: [90.0, 24.0], hs_code: "3105", role: "Major agricultural market" },
-        { id: "pakistan", name: "Pakistan", coords: [69.0, 30.0], hs_code: "3105", role: "Agricultural sector" },
-        { id: "china", name: "China", coords: [105.0, 35.0], hs_code: "3105", role: "Large fertilizer market" },
-        { id: "indonesia", name: "Indonesia", coords: [113.0, -8.0], hs_code: "3105", role: "Palm oil agriculture" },
-        { id: "vietnam", name: "Vietnam", coords: [108.0, 14.0], hs_code: "3105", role: "Rice agriculture" },
-        { id: "spain", name: "Spain", coords: [-3.0, 40.0], hs_code: "3105", role: "EU agricultural market" },
-        { id: "france", name: "France", coords: [2.0, 46.0], hs_code: "3105", role: "EU agricultural sector" },
-        { id: "italy", name: "Italy", coords: [12.0, 42.0], hs_code: "3105", role: "Mediterranean agriculture" },
-        { id: "netherlands", name: "Netherlands", coords: [5.0, 52.0], hs_code: "3105", role: "EU distribution hub" },
-        { id: "uk", name: "United Kingdom", coords: [0.0, 54.0], hs_code: "3105", role: "Agricultural sector" },
-        { id: "ethiopia", name: "Ethiopia", coords: [40.0, 9.0], hs_code: "3105", role: "Growing agricultural market" },
-        { id: "kenya", name: "Kenya", coords: [38.0, 1.0], hs_code: "3105", role: "Agricultural sector" },
-        { id: "ghana", name: "Ghana", coords: [-2.0, 8.0], hs_code: "3105", role: "Agricultural market" },
-        { id: "nigeria", name: "Nigeria", coords: [8.0, 10.0], hs_code: "3105", role: "Large agricultural sector" },
-        { id: "south_africa", name: "South Africa", coords: [25.0, -29.0], hs_code: "3105", role: "Agricultural sector" }
-    ],
-    chemicals: [
-        { id: "spain", name: "Spain", coords: [-3.0, 40.0], hs_code: "2835", role: "Chemical industry" },
-        { id: "france", name: "France", coords: [2.0, 46.0], hs_code: "2835", role: "Chemical manufacturing" },
-        { id: "belgium", name: "Belgium", coords: [4.0, 51.0], hs_code: "2835", role: "Chemical hub" },
-        { id: "netherlands", name: "Netherlands", coords: [5.0, 52.0], hs_code: "2835", role: "Chemical distribution" },
-        { id: "usa", name: "United States", coords: [-100.0, 40.0], hs_code: "2835", role: "Chemical industry" },
-        { id: "brazil", name: "Brazil", coords: [-55.0, -10.0], hs_code: "2835", role: "Chemical sector" },
-        { id: "mexico", name: "Mexico", coords: [-102.0, 23.0], hs_code: "2835", role: "Chemical manufacturing" }
-    ]
+/* Name standardization for centroid lookup */
+const NAME_FIX = {
+  "Slovak Republic": "Slovakia",
+  "Czech Republic": "Czechia",
+  "Bosnia and Herzegovina": "Bosnia and Herz."
 };
 
-// Import origin countries (specialty derivatives)
-const IMPORT_ORIGINS = [
-    { id: "china", name: "China", coords: [105.0, 35.0], hs_code: "283524", role: "Advanced chemical manufacturing" },
-    { id: "japan", name: "Japan", coords: [138.0, 36.0], hs_code: "283524", role: "Specialty chemical production" },
-    { id: "south_korea", name: "South Korea", coords: [128.0, 36.0], hs_code: "283524", role: "Advanced chemical industry" },
-    { id: "germany", name: "Germany", coords: [10.0, 51.0], hs_code: "283524", role: "Chemical engineering hub" },
-    { id: "belgium", name: "Belgium", coords: [4.0, 51.0], hs_code: "283524", role: "Chemical processing" },
-    { id: "netherlands", name: "Netherlands", coords: [5.0, 52.0], hs_code: "283524", role: "Chemical distribution" },
-    { id: "france", name: "France", coords: [2.0, 46.0], hs_code: "283524", role: "Specialty chemicals" },
-    { id: "spain", name: "Spain", coords: [-3.0, 40.0], hs_code: "283524", role: "Chemical manufacturing" },
-    { id: "israel", name: "Israel", coords: [35.0, 31.0], hs_code: "283524", role: "Chemical technology" },
-    { id: "usa", name: "United States", coords: [-100.0, 40.0], hs_code: "283524", role: "Advanced chemical industry" }
+/* ===============================
+   MOROCCO SITES (all inside Morocco)
+   =============================== */
+const MOROCCO_SITES = [
+  { name:"Khouribga", type:"mine", lat:32.886, lng:-6.906, note:"Major phosphate basin (OCP)."},
+  { name:"Benguerir", type:"mine", lat:32.238, lng:-7.953, note:"Gantour region operations."},
+  { name:"Youssoufia", type:"mine", lat:32.246, lng:-8.529, note:"Gantour region operations."},
+  { name:"Jorf Lasfar", type:"hub", lat:33.138, lng:-8.616, note:"Coastal industrial hub / export platform."},
+  { name:"Safi", type:"hub", lat:32.299, lng:-9.237, note:"Coastal processing / exports."},
+  { name:"Bou Craa", type:"mine", lat:26.313, lng:-13.007, note:"Southern phosphate operations (Phosboucraa)."},
+  { name:"Laâyoune", type:"logistics", lat:27.153, lng:-13.203, note:"Southern logistics / export node."}
 ];
 
-// Stage definitions
-const STAGES = {
-    "stages": [
-        {
-            "key": "extraction",
-            "label": "Extraction (phosphate rock)",
-            "definition": "Fully local: mining and extraction in Morocco."
-        },
-        {
-            "key": "processing",
-            "label": "Processing & Logistics",
-            "definition": "Local processing and transport infrastructure."
-        },
-        {
-            "key": "bulk_fertilizer",
-            "label": "Bulk fertilizers",
-            "definition": "Local large-scale industrial production; major exports."
-        },
-        {
-            "key": "specialty_partial",
-            "label": "Specialty phosphate derivatives",
-            "definition": "Partially local: many high-value downstream derivatives are produced abroad and can re-enter as imports (value leakage)."
+// Use Jorf Lasfar as the clean origin/termination point for flows:
+const MOROCCO_FLOW_HUB = { lat:33.138, lng:-8.616 };
+
+/* ===============================
+   LEAFLET SETUP
+   =============================== */
+const map = L.map("map", { zoomControl: true }).setView([31.8, -6.0], 4);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map);
+
+const sitesLayer = L.layerGroup().addTo(map);
+const partnersLayer = L.layerGroup().addTo(map);
+const flowsLayer = L.layerGroup().addTo(map);
+let moroccoLayer = null;
+let moroccoFallbackBox = null;
+
+function cssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/* ===============================
+   MOROCCO OUTLINE REMOVED
+   =============================== */
+function loadMoroccoOutline() {
+  // Function kept for compatibility but does nothing
+}
+
+// Rough centroid from bbox (works without turf)
+function roughCentroidFromGeoJSON(feature){
+  try{
+    const coords = [];
+    const geom = feature.geometry;
+    if (!geom) return null;
+
+    function pushCoords(arr){
+      for (const pt of arr){
+        if (typeof pt[0] === "number" && typeof pt[1] === "number"){
+          coords.push(pt);
+        } else {
+          pushCoords(pt);
         }
-    ]
+      }
+    }
+    pushCoords(geom.coordinates);
+
+    if (!coords.length) return null;
+
+    let minLng=Infinity, maxLng=-Infinity, minLat=Infinity, maxLat=-Infinity;
+    for (const [lng, lat] of coords){
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+    }
+    return { lat: (minLat+maxLat)/2, lng: (minLng+maxLng)/2 };
+  } catch {
+    return null;
+  }
+}
+
+/* ===============================
+   MARKERS
+   =============================== */
+function makeCircleMarker(lat, lng, color){
+  return L.circleMarker([lat,lng], {
+    radius: 6,
+    color: "rgba(0,0,0,0.10)",
+    weight: 2,
+    fillColor: color,
+    fillOpacity: 0.95
+  });
+}
+
+function drawSites(){
+  sitesLayer.clearLayers();
+
+  for (const s of MOROCCO_SITES){
+    const color =
+      s.type === "mine" ? cssVar("--col-mine") :
+      s.type === "hub" ? cssVar("--col-hub") :
+      cssVar("--col-logistics");
+
+    const m = makeCircleMarker(s.lat, s.lng, color)
+      .bindTooltip(`<strong>${s.name}</strong><br/>${s.note}`, { className:"customTip", direction:"top" });
+
+    sitesLayer.addLayer(m);
+  }
+}
+
+/* ===============================
+   FLOWS: CURVED ARC + arrow marker at end
+   =============================== */
+function bezierArcPoints(from, to, bend = 0.22, steps = 70){
+  const x1 = from.lng, y1 = from.lat;
+  const x2 = to.lng, y2 = to.lat;
+
+  // Midpoint
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+
+  // Perpendicular offset
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+
+  // normalized perpendicular
+  const px = -dy / dist;
+  const py = dx / dist;
+
+  // scale bend based on distance (clamped)
+  const bendScale = Math.max(2, Math.min(12, dist * 0.6)) * bend;
+
+  const cx = mx + px * bendScale;
+  const cy = my + py * bendScale;
+
+  const pts = [];
+  for (let i=0;i<=steps;i++){
+    const t = i/steps;
+    // Quadratic bezier
+    const xt = (1-t)*(1-t)*x1 + 2*(1-t)*t*cx + t*t*x2;
+    const yt = (1-t)*(1-t)*y1 + 2*(1-t)*t*cy + t*t*y2;
+    pts.push([yt, xt]); // Leaflet is [lat,lng]
+  }
+  return pts;
+}
+
+function addArrowHead(endLatLng, angleRad, color){
+  // A tiny triangle using a divIcon, rotated by angle.
+  const deg = (angleRad * 180/Math.PI);
+  const html = `<div class="arrowHead" style="transform: rotate(${deg}deg); border-bottom-color:${color};"></div>`;
+  const icon = L.divIcon({ className: "arrowWrap", html, iconSize:[14,14], iconAnchor:[7,7] });
+  return L.marker(endLatLng, { icon, interactive:false });
+}
+
+// Arrow CSS injected once
+(function injectArrowCSS(){
+  const css = `
+    .arrowWrap{ background: transparent; }
+    .arrowHead{
+      width: 0; height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-bottom: 12px solid ${cssVar("--col-export")};
+      opacity: 0.9;
+    }
+  `;
+  const style = document.createElement("style");
+  style.innerHTML = css;
+  document.head.appendChild(style);
+})();
+
+function formatUSD(n){
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+function formatPct(n){
+  if (n < 0.01) return "<0.01%";
+  return `${n.toFixed(2)}%`;
+}
+function formatTonnes(n){
+  return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+/* ===============================
+   RENDER CURRENT VIEW
+   =============================== */
+let state = {
+  tab: "exports",         // "exports" | "imports"
+  categoryKey: "fertilizers",
+  metric: "share",        // share | usd | tonnes
+  showSites: true,
+  showFlows: true
 };
 
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-    initializeMap();
-    loadLayers();
-    setupControls();
-    setupLegend();
-    setupProfilePanel();
-    setupStoryMode();
-    setupProductMode();
-    setupSourcesToggle();
+function getCurrentDataset(){
+  return TRADE_DATA[state.tab][state.categoryKey];
+}
+
+function computeDerived(dataset){
+  // Remove EU aggregate before computing totals
+  const filteredPartners = dataset.partners.filter(p => p.country !== "European Union");
+  
+  const rows = filteredPartners.map(p => {
+    // Handle both valueUSD and valueKUSD formats
+    const valueUSD = p.valueUSD || (p.valueKUSD * 1000);
+    const tonnes = (p.qtyKg ?? 0) / 1000;
+    return { ...p, valueUSD, tonnes };
+  });
+
+  const totalUSD = rows.reduce((a,r)=>a+r.valueUSD, 0);
+  const totalTonnes = rows.reduce((a,r)=>a+r.tonnes, 0);
+
+  rows.forEach(r => r.sharePct = totalUSD ? (r.valueUSD/totalUSD*100) : 0);
+  rows.sort((a,b)=>b.sharePct - a.sharePct);
+
+  return { rows, totalUSD, totalTonnes };
+}
+
+function partnerLatLng(country){
+  const key = NAME_FIX[country] || country;
+  const c = PARTNER_CENTROIDS[key];
+  if (!c) return null;
+  return L.latLng(c[0], c[1]);
+}
+
+function clearFlows(){
+  flowsLayer.clearLayers();
+  partnersLayer.clearLayers();
+}
+
+function render(){
+  // sites
+  if (state.showSites) {
+    drawSites();
+    if (!map.hasLayer(sitesLayer)) map.addLayer(sitesLayer);
+  } else {
+    if (map.hasLayer(sitesLayer)) map.removeLayer(sitesLayer);
+  }
+
+  clearFlows();
+  if (!state.showFlows) return;
+
+  const dataset = getCurrentDataset();
+  const { rows, totalUSD, totalTonnes } = computeDerived(dataset);
+
+  // Show all partners in current dataset (no filtering)
+  const finalRows = rows;
+
+  // Update year hint
+  const yearHint = document.getElementById("yearHint");
+  yearHint.textContent = `Data year: ${dataset.year} • ${dataset.label}`;
+
+  const exportColor = cssVar("--col-export");
+  const importColor = cssVar("--col-import");
+
+  for (const r of finalRows){
+    const end = partnerLatLng(r.country);
+    if (!end) continue; // Skip "Others" and any missing centroids
+
+    // Partner dot
+    const pm = makeCircleMarker(end.lat, end.lng, cssVar("--col-partner"));
+    const label = (state.tab === "exports") ? "Exports to" : "Imports from";
+
+    // Tooltip text based on metric and data format
+    let metricText = "";
+    const hasDetailedData = r.qtyKg !== undefined; // Check if we have detailed breakdown
+    
+    if (state.metric === "share"){
+      metricText = `${formatPct(r.sharePct)} of this category`;
+    } else if (state.metric === "usd"){
+      metricText = `$${formatUSD(r.valueUSD)}`;
+    } else {
+      if (hasDetailedData) {
+        metricText = `${formatTonnes(r.tonnes)} tonnes`;
+      } else {
+        metricText = "Exact subcategory values not separated in trade reporting";
+      }
+    }
+
+    pm.bindTooltip(
+      `<strong>${r.country}</strong><br/>${label} — ${metricText} (${dataset.year})`,
+      { className:"customTip", direction:"top" }
+    );
+    partnersLayer.addLayer(pm);
+
+    // Flow arc
+    const from = (state.tab === "exports")
+      ? { lat: MOROCCO_FLOW_HUB.lat, lng: MOROCCO_FLOW_HUB.lng }
+      : { lat: end.lat, lng: end.lng };
+
+    const to = (state.tab === "exports")
+      ? { lat: end.lat, lng: end.lng }
+      : { lat: MOROCCO_FLOW_HUB.lat, lng: MOROCCO_FLOW_HUB.lng };
+
+    const pts = bezierArcPoints(from, to, 0.22, 70);
+
+    const color = (state.tab === "exports") ? exportColor : importColor;
+    const dash = (state.tab === "exports") ? null : "8 8";
+
+    const line = L.polyline(pts, {
+      color,
+      weight: 3,
+      opacity: 0.75,
+      dashArray: dash
+    });
+
+    flowsLayer.addLayer(line);
+
+    // Arrowhead at end
+    const last = pts[pts.length-1];
+    const prev = pts[pts.length-6] || pts[pts.length-2];
+    const angle = Math.atan2(last[0]-prev[0], last[1]-prev[1]); // lat/lng delta
+
+    // For imports: arrow points toward Morocco (end at Morocco hub)
+    const arrowPos = L.latLng(last[0], last[1]);
+
+    const arrow = addArrowHead(arrowPos, angle - Math.PI/2, color);
+    flowsLayer.addLayer(arrow);
+  }
+}
+
+/* ===============================
+   UI WIRING
+   =============================== */
+const tabs = Array.from(document.querySelectorAll(".tab"));
+const categorySelect = document.getElementById("categorySelect");
+const metricSelect = document.getElementById("metricSelect");
+const toggleSites = document.getElementById("toggleSites");
+const toggleFlows = document.getElementById("toggleFlows");
+
+// Tab click
+tabs.forEach(btn => {
+  btn.addEventListener("click", () => {
+    tabs.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.tab = btn.dataset.tab;
+
+    // Rebuild category dropdown based on tab
+    rebuildCategories();
+    render();
+  });
 });
 
-// Initialize Leaflet map
-function initializeMap() {
-    map = L.map('map').setView([25.0, 0.0], 3);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18
-    }).addTo(map);
-}
-
-// Create curved path between two points
-function createCurvedPath(from, to, options = {}) {
-    const fromLatLng = L.latLng(from[1], from[0]);
-    const toLatLng = L.latLng(to[1], to[0]);
-    
-    // Calculate midpoint and offset for curve
-    const midLat = (fromLatLng.lat + toLatLng.lat) / 2;
-    const midLng = (fromLatLng.lng + toLatLng.lng) / 2;
-    
-    // Calculate perpendicular offset for curve
-    const latDiff = toLatLng.lat - fromLatLng.lat;
-    const lngDiff = toLatLng.lng - fromLatLng.lng;
-    const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-    
-    // Offset magnitude based on distance
-    const offsetMagnitude = distance * 0.15;
-    
-    // Calculate perpendicular offset
-    const perpLat = -lngDiff / distance * offsetMagnitude;
-    const perpLng = latDiff / distance * offsetMagnitude;
-    
-    const controlPoint = [midLat + perpLat, midLng + perpLng];
-    
-    // Generate curved path points
-    const points = [];
-    const steps = 60;
-    
-    for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-        const lat = Math.pow(1-t, 2) * fromLatLng.lat + 
-                   2 * (1-t) * t * controlPoint[0] + 
-                   Math.pow(t, 2) * toLatLng.lat;
-        const lng = Math.pow(1-t, 2) * fromLatLng.lng + 
-                   2 * (1-t) * t * controlPoint[1] + 
-                   Math.pow(t, 2) * toLatLng.lng;
-        points.push([lat, lng]);
+function rebuildCategories(){
+  categorySelect.innerHTML = "";
+  const cats = Object.keys(TRADE_DATA[state.tab]);
+  
+  // Reorder categories: fertilizers first for exports
+  let orderedCats = [...cats];
+  if (state.tab === "exports") {
+    // Move fertilizers to first position if it exists
+    const fertIndex = orderedCats.indexOf("fertilizers");
+    if (fertIndex !== -1) {
+      orderedCats.splice(fertIndex, 1);
+      orderedCats.unshift("fertilizers");
     }
-    
-    return L.polyline(points, {
-        ...options,
-        smoothFactor: 1
-    });
+  }
+  
+  for (const key of orderedCats){
+    const ds = TRADE_DATA[state.tab][key];
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = ds.label;
+    categorySelect.appendChild(opt);
+  }
+
+  // choose sensible default
+  state.categoryKey = orderedCats[0];
+  categorySelect.value = state.categoryKey;
 }
 
-// Load and create layers
-function loadLayers() {
-    // Create sites layer
-    sitesLayer = L.layerGroup().addTo(map);
-    
-    SITES.features.forEach(feature => {
-        const coords = feature.geometry.coordinates;
-        const props = feature.properties;
-        
-        const marker = L.circleMarker([coords[1], coords[0]], {
-            radius: getMarkerSize(props.type),
-            fillColor: getMarkerColor(props.type),
-            color: '#fff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.8
-        });
-        
-        // Add tooltip
-        marker.bindTooltip(createSiteTooltip(props), {
-            permanent: false,
-            sticky: true,
-            direction: 'top'
-        });
-        
-        // Add hover effects
-        marker.on('mouseover', function() {
-            highlightSite(marker, feature);
-        });
-        
-        marker.on('mouseout', function() {
-            resetHighlight();
-        });
-        
-        // Add click for profile
-        marker.on('click', function() {
-            showProfileCard(feature);
-        });
-        
-        marker.feature = feature;
-        sitesLayer.addLayer(marker);
-    });
-    
-    // Create flows layer
-    flowsLayer = L.layerGroup().addTo(map);
-    updateFlows();
-}
+categorySelect.addEventListener("change", () => {
+  state.categoryKey = categorySelect.value;
+  render();
+});
 
-// Update flows based on current product mode
-function updateFlows() {
-    flowsLayer.clearLayers();
-    
-    // Domestic flows (always visible)
-    addDomesticFlows();
-    
-    // Export flows based on product mode
-    if (currentProductMode === 'bulk' || currentProductMode === 'chemicals') {
-        addExportFlows();
-    }
-    
-    // Import flows (specialty mode)
-    if (currentProductMode === 'specialty') {
-        addImportFlows();
-    }
-}
+metricSelect.addEventListener("change", () => {
+  state.metric = metricSelect.value;
+  render();
+});
 
-// Add domestic flows
-function addDomesticFlows() {
-    const domesticFlows = [
-        { from: [-6.9063, 32.8811], to: [-8.62028, 33.1267], label: "Khouribga → Jorf Lasfar (Slurry pipeline)" },
-        { from: [-13.0, 26.0], to: [-15.0, 27.0], label: "Bou Craa → Laâyoune (Logistics corridor)" }
-    ];
-    
-    domesticFlows.forEach(flow => {
-        const curve = createCurvedPath(flow.from, flow.to, {
-            color: '#6b7280',
-            weight: 2,
-            opacity: 0.8,
-            dashArray: null
-        });
-        
-        curve.bindTooltip(flow.label, {
-            permanent: false,
-            sticky: true,
-            direction: 'center'
-        });
-        
-        flowsLayer.addLayer(curve);
-    });
-}
+toggleSites.addEventListener("change", () => {
+  state.showSites = toggleSites.checked;
+  render();
+});
 
-// Add export flows based on product mode
-function addExportFlows() {
-    const partners = EXPORT_PARTNERS[currentProductMode] || [];
-    const moroccanHubs = [
-        { coords: [-8.62028, 33.1267], name: "Jorf Lasfar" },
-        { coords: [-9.23718, 32.29939], name: "Safi" }
-    ];
-    
-    partners.forEach(partner => {
-        // Connect to nearest Moroccan hub
-        const hub = moroccanHubs[Math.floor(Math.random() * moroccanHubs.length)];
-        
-        const curve = createCurvedPath(hub.coords, partner.coords, {
-            color: '#059669',
-            weight: 3,
-            opacity: 0.7,
-            dashArray: null
-        });
-        
-        const tooltip = `${hub.name} → ${partner.name} (${partner.hs_code})`;
-        curve.bindTooltip(tooltip, {
-            permanent: false,
-            sticky: true,
-            direction: 'center'
-        });
-        
-        flowsLayer.addLayer(curve);
-    });
-}
+toggleFlows.addEventListener("change", () => {
+  state.showFlows = toggleFlows.checked;
+  render();
+});
 
-// Add import flows
-function addImportFlows() {
-    const moroccoPoint = [-8.62028, 33.1267]; // Jorf Lasfar as entry point
-    
-    IMPORT_ORIGINS.forEach(origin => {
-        const curve = createCurvedPath(origin.coords, moroccoPoint, {
-            color: '#7c3aed',
-            weight: 3,
-            opacity: 0.8,
-            dashArray: '8,4'
-        });
-        
-        const tooltip = `${origin.name} → Morocco (${origin.hs_code})`;
-        curve.bindTooltip(tooltip, {
-            permanent: false,
-            sticky: true,
-            direction: 'center'
-        });
-        
-        flowsLayer.addLayer(curve);
-    });
-}
+// Sources toggle
+const sourcesToggle = document.getElementById("sourcesToggle");
+const sourcesPanel = document.getElementById("sourcesPanel");
+const sourcesClose = document.getElementById("sourcesClose");
 
-// Get marker size based on type
-function getMarkerSize(type) {
-    const sizes = {
-        'mine': 8,
-        'chemical_hub': 10,
-        'logistics': 6,
-        'anchor': 7
-    };
-    return sizes[type] || 6;
-}
+sourcesToggle.addEventListener("click", () => {
+  sourcesPanel.classList.toggle("hidden");
+});
+sourcesClose.addEventListener("click", () => {
+  sourcesPanel.classList.add("hidden");
+});
 
-// Get marker color based on type
-function getMarkerColor(type) {
-    const colors = {
-        'mine': '#8B4513',
-        'chemical_hub': '#2563eb',
-        'logistics': '#f59e0b',
-        'anchor': '#dc2626'
-    };
-    return colors[type] || '#666';
-}
-
-// Create tooltip for sites
-function createSiteTooltip(properties) {
-    let content = `<strong>${properties.name}</strong>`;
-    content += `<span>Type: ${properties.type}</span>`;
-    content += `<span>Stage: ${properties.stage}</span>`;
-    if (properties.operator) {
-        content += `<span>Operator: ${properties.operator}</span>`;
-    }
-    content += `<span>${properties.note}</span>`;
-    return content;
-}
-
-// Highlight site on hover
-function highlightSite(marker, feature) {
-    resetHighlight();
-    
-    marker.setStyle({
-        radius: getMarkerSize(feature.properties.type) * 1.5,
-        weight: 3,
-        fillOpacity: 1
-    });
-    
-    highlightedLayer = marker;
-}
-
-// Reset highlight
-function resetHighlight() {
-    if (highlightedLayer) {
-        const feature = highlightedLayer.feature;
-        highlightedLayer.setStyle({
-            radius: getMarkerSize(feature.properties.type),
-            weight: 2,
-            fillOpacity: 0.8
-        });
-        highlightedLayer = null;
-    }
-}
-
-// Setup controls
-function setupControls() {
-    const showSites = document.getElementById('showSites');
-    const showFlows = document.getElementById('showFlows');
-    const transformationCeiling = document.getElementById('transformationCeiling');
-    
-    showSites.addEventListener('change', function() {
-        if (this.checked) {
-            map.addLayer(sitesLayer);
-        } else {
-            map.removeLayer(sitesLayer);
-        }
-    });
-    
-    showFlows.addEventListener('change', function() {
-        if (this.checked) {
-            map.addLayer(flowsLayer);
-        } else {
-            map.removeLayer(flowsLayer);
-        }
-    });
-    
-    transformationCeiling.addEventListener('change', function() {
-        if (this.checked) {
-            applyTransformationCeiling();
-        } else {
-            resetTransformationCeiling();
-        }
-    });
-}
-
-// Setup legend
-function setupLegend() {
-    const stageDefinitions = document.getElementById('stageDefinitions');
-    STAGES.stages.forEach(stage => {
-        const div = document.createElement('div');
-        div.innerHTML = `<strong>${stage.label}</strong>${stage.definition}`;
-        stageDefinitions.appendChild(div);
-    });
-}
-
-// Setup profile panel
-function setupProfilePanel() {
-    const closeBtn = document.getElementById('closeProfile');
-    const profilePanel = document.getElementById('profilePanel');
-    
-    closeBtn.addEventListener('click', function() {
-        profilePanel.style.display = 'none';
-    });
-}
-
-// Show profile card for a site
-function showProfileCard(feature) {
-    const profilePanel = document.getElementById('profilePanel');
-    const profileContent = document.getElementById('profileContent');
-    const props = feature.properties;
-    
-    let content = `<h3>${props.name}</h3>`;
-    content += `<p><strong>Type:</strong> ${props.type}</p>`;
-    content += `<p><strong>Stage:</strong> ${props.stage}</p>`;
-    content += `<p><strong>Operator:</strong> ${props.operator}</p>`;
-    content += `<p><strong>Region:</strong> ${props.region}</p>`;
-    content += `<p><strong>Note:</strong> ${props.note}</p>`;
-    
-    // Add capability ladder
-    content += '<div class="capability-ladder">';
-    content += '<h4>Capability Ladder</h4>';
-    
-    const ladderOrder = ['extraction', 'processing', 'bulk_fertilizer', 'specialty_partial'];
-    ladderOrder.forEach(stageKey => {
-        const stage = STAGES.stages.find(s => s.key === stageKey);
-        if (stage) {
-            const isActive = props.stage === stageKey;
-            const className = isActive ? 'ladder-step active' : 'ladder-step';
-            content += `<div class="${className}"><span>${stage.label}</span></div>`;
-        }
-    });
-    
-    content += '</div>';
-    
-    // Add "Why this matters"
-    content += '<div class="why-matters">';
-    content += '<h4>Why This Matters</h4>';
-    if (props.stage === 'extraction') {
-        content += '<p>This is where value creation begins - raw phosphate extraction provides the foundation for the entire value chain.</p>';
-    } else if (props.stage === 'bulk_fertilizer') {
-        content += '<p>This represents Morocco\'s industrial capability - transforming raw materials into export-ready bulk products.</p>';
-    } else if (props.stage === 'specialty_partial') {
-        content += '<p>This shows the transformation ceiling - where Morocco\'s value creation stops and value leakage begins.</p>';
-    }
-    content += '</div>';
-    
-    profileContent.innerHTML = content;
-    profilePanel.style.display = 'block';
-}
-
-// Setup story mode
-function setupStoryMode() {
-    const storyBtn = document.getElementById('storyMode');
-    const closeStory = document.getElementById('closeStory');
-    const storyPanel = document.getElementById('storyPanel');
-    const prevStep = document.getElementById('prevStep');
-    const nextStep = document.getElementById('nextStep');
-    
-    storyBtn.addEventListener('click', function() {
-        storyPanel.style.display = 'block';
-        currentStoryStep = 1;
-        updateStoryStep();
-    });
-    
-    closeStory.addEventListener('click', function() {
-        storyPanel.style.display = 'none';
-    });
-    
-    prevStep.addEventListener('click', function() {
-        if (currentStoryStep > 1) {
-            currentStoryStep--;
-            updateStoryStep();
-        }
-    });
-    
-    nextStep.addEventListener('click', function() {
-        if (currentStoryStep < 5) {
-            currentStoryStep++;
-            updateStoryStep();
-        }
-    });
-}
-
-// Update story step
-function updateStoryStep() {
-    const stepIndicator = document.getElementById('stepIndicator');
-    const storySteps = document.querySelectorAll('.story-step');
-    
-    stepIndicator.textContent = `Step ${currentStoryStep}/5`;
-    
-    storySteps.forEach((step, index) => {
-        step.classList.toggle('active', index + 1 === currentStoryStep);
-    });
-    
-    // Update map view and highlights based on step
-    switch(currentStoryStep) {
-        case 1:
-            // Extraction basins
-            map.setView([28.0, -10.0], 5);
-            highlightExtractionSites();
-            break;
-        case 2:
-            // Domestic logistics
-            map.setView([30.0, -10.0], 5);
-            highlightLogisticsSites();
-            break;
-        case 3:
-            // Coastal hubs
-            map.setView([32.5, -9.0], 6);
-            highlightCoastalHubs();
-            break;
-        case 4:
-            // Global exports
-            map.setView([25.0, 0.0], 3);
-            highlightExportFlows();
-            break;
-        case 5:
-            // Transformation ceiling
-            map.setView([25.0, 0.0], 3);
-            applyTransformationCeiling();
-            break;
-    }
-}
-
-// Story mode highlighting functions
-function highlightExtractionSites() {
-    // Implementation for highlighting extraction sites
-}
-
-function highlightLogisticsSites() {
-    // Implementation for highlighting logistics
-}
-
-function highlightCoastalHubs() {
-    // Implementation for highlighting coastal hubs
-}
-
-function highlightExportFlows() {
-    // Implementation for highlighting export flows
-}
-
-// Setup product mode selector
-function setupProductMode() {
-    const productSelector = document.getElementById('productSelector');
-    
-    productSelector.addEventListener('change', function() {
-        currentProductMode = this.value;
-        updateFlows();
-        updateLegend();
-    });
-}
-
-// Update legend based on product mode
-function updateLegend() {
-    // Implementation for updating legend
-}
-
-// Setup sources toggle
-function setupSourcesToggle() {
-    const sourcesToggle = document.getElementById('sourcesToggle');
-    const sourcesPanel = document.getElementById('sourcesPanel');
-    const closeSources = document.getElementById('closeSources');
-    
-    sourcesToggle.addEventListener('click', function() {
-        const isVisible = sourcesPanel.style.display !== 'none';
-        sourcesPanel.style.display = isVisible ? 'none' : 'block';
-        sourcesToggle.classList.toggle('active', !isVisible);
-    });
-    
-    closeSources.addEventListener('click', function() {
-        sourcesPanel.style.display = 'none';
-        sourcesToggle.classList.remove('active');
-    });
-    
-    // Close panel when clicking outside
-    document.addEventListener('click', function(event) {
-        if (!sourcesToggle.contains(event.target) && !sourcesPanel.contains(event.target)) {
-            sourcesPanel.style.display = 'none';
-            sourcesToggle.classList.remove('active');
-        }
-    });
-}
-
-// Transformation ceiling mode
-function applyTransformationCeiling() {
-    // Dim all sites first
-    sitesLayer.eachLayer(function(layer) {
-        layer.setStyle({ opacity: 0.3, fillOpacity: 0.3 });
-        if (layer._path) {
-            layer._path.classList.add('dimmed');
-        }
-    });
-    
-    // Highlight Moroccan extraction + bulk fertilizer sites
-    sitesLayer.eachLayer(function(layer) {
-        const feature = layer.feature;
-        const stage = feature.properties.stage;
-        const type = feature.properties.type;
-        // Highlight Moroccan sites (extraction, bulk_fertilizer)
-        if ((stage === 'extraction' || stage === 'bulk_fertilizer') && 
-            (type === 'mine' || type === 'chemical_hub')) {
-            layer.setStyle({ opacity: 1, fillOpacity: 0.8 });
-            if (layer._path) {
-                layer._path.classList.remove('dimmed');
-                layer._path.classList.add('highlighted');
-            }
-        }
-        // Highlight logistics nodes
-        if (type === 'logistics') {
-            layer.setStyle({ opacity: 0.8, fillOpacity: 0.6 });
-            if (layer._path) {
-                layer._path.classList.remove('dimmed');
-                layer._path.classList.add('highlighted');
-            }
-        }
-    });
-    
-    // Dim all flows
-    flowsLayer.eachLayer(function(layer) {
-        layer.setStyle({ opacity: 0.2 });
-        if (layer._path) {
-            layer._path.classList.add('dimmed');
-        }
-    });
-    
-    // Keep domestic flows visible (shows internal integration)
-    flowsLayer.eachLayer(function(layer) {
-        const tooltip = layer.getTooltip();
-        if (tooltip && tooltip.getContent().includes('Domestic')) {
-            layer.setStyle({ opacity: 0.8 });
-            if (layer._path) {
-                layer._path.classList.remove('dimmed');
-                layer._path.classList.add('highlighted');
-            }
-        }
-    });
-    
-    // Highlight ALL import flows (specialty derivatives returning to Morocco)
-    flowsLayer.eachLayer(function(layer) {
-        const tooltip = layer.getTooltip();
-        if (tooltip && tooltip.getContent().includes('→ Morocco')) {
-            layer.setStyle({ opacity: 1, weight: 4 });
-            if (layer._path) {
-                layer._path.classList.remove('dimmed');
-                layer._path.classList.add('highlighted');
-            }
-        }
-    });
-}
-
-// Reset transformation ceiling mode
-function resetTransformationCeiling() {
-    // Reset all sites
-    sitesLayer.eachLayer(function(layer) {
-        const feature = layer.feature;
-        const color = getMarkerColor(feature.properties.type);
-        layer.setStyle({ 
-            opacity: 1, 
-            fillOpacity: 0.8,
-            color: '#fff',
-            weight: 2
-        });
-        if (layer._path) {
-            layer._path.classList.remove('dimmed', 'highlighted');
-        }
-    });
-    
-    // Reset all flows
-    flowsLayer.eachLayer(function(layer) {
-        // Reset to original flow styles based on current product mode
-        const tooltip = layer.getTooltip();
-        if (tooltip) {
-            const content = tooltip.getContent();
-            if (content.includes('Domestic')) {
-                layer.setStyle({ color: '#6b7280', weight: 2, opacity: 0.8, dashArray: null });
-            } else if (content.includes('→ Morocco')) {
-                layer.setStyle({ color: '#7c3aed', weight: 3, opacity: 0.8, dashArray: '8,4' });
-            } else {
-                layer.setStyle({ color: '#059669', weight: 3, opacity: 0.7, dashArray: null });
-            }
-        }
-        if (layer._path) {
-            layer._path.classList.remove('dimmed', 'highlighted');
-        }
-    });
-}
+/* ===============================
+   INIT
+   =============================== */
+// Map initialization is now handled by initializeApp() after data loads
