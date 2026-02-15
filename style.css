@@ -108,7 +108,7 @@ select{
 }
 .line.export{ border-top-color: var(--col-export); }
 .line.import{ border-top-color: var(--col-import); border-top-style: dashed; }
-.line.domestic{ border-top-color: #666; opacity:0.6; border-top-style: dotted; }
+.line.domestic{ border-top-color: #2E4057; opacity:0.8; border-top-style: dotted; }
 
 .sources-toggle{
   position:absolute;

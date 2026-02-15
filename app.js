@@ -397,7 +397,7 @@ function drawDomesticLinks(){
   domesticLayer.clearLayers();
   
   // Only show domestic links when zoomed in enough
-  if (map.getZoom() < 5) return;
+  if (map.getZoom() < 4) return;
   
   if (!state.showDomestic) return;
   
@@ -432,7 +432,7 @@ function drawDomesticLinks(){
       [fromSite.lat, fromSite.lng],
       [toSite.lat, toSite.lng]
     ], {
-      color: "#666",
+      color: "#2E4057",
       weight: weight,
       opacity: opacity,
       dashArray: style.dashArray
