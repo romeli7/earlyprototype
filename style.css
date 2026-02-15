@@ -26,10 +26,10 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
   z-index: 500;
 }
 
-/* Intro panel - set to 320px to prevent collision */
+/* Intro panel - set to 280px to reduce map coverage */
 .intro{
   left: 16px; top: 16px;
-  width: 320px;
+  width: 280px;
 }
 .intro h2{ margin: 0 0 6px 0; font-size: 16px; text-align: center; }
 .intro ul{ margin: 0 0 6px 0; padding-left: 16px; line-height: 1.25; font-size: 12px; color:#222; }
@@ -40,7 +40,7 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
 
 .controls{
   right: 16px; top: 16px;
-  width: 320px;
+  width: 280px;
 }
 .controls h3{ margin:0 0 10px 0; font-size:16px; }
 
@@ -78,10 +78,10 @@ select{
 }
 .hint{ font-size: 12px; color:#444; margin-top: 6px; }
 
-/* Legend panel - set to 320px to match intro panel and prevent collision */
+/* Legend panel - set to 280px to match other panels */
 .legend{
   left: 16px; bottom: 16px;
-  width: 320px;
+  width: 280px;
 }
 .legend h3{ margin:0 0 6px 0; font-size:14px; }
 .legend-row{ display:flex; align-items:center; gap:6px; margin: 3px 0; font-size: 11px; }
