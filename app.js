@@ -10,38 +10,42 @@ fetch('data/trade_flows.json')
     // Convert external format to internal format
     TRADE_DATA = {
       exports: {
-        phosphoric_acid: {
-          label: data.phosphoric_acid.product_label,
-          year: data.phosphoric_acid.year,
-          partners: data.phosphoric_acid.rows.map(row => ({
-            country: row.partner,
-            valueUSD: row.value_usd
-          }))
-        },
-        phosphate_rock_raw: {
-          label: data.phosphate_rock_raw.product_label,
-          year: data.phosphate_rock_raw.year,
-          partners: data.phosphate_rock_raw.rows.map(row => ({
-            country: row.partner,
-            valueUSD: row.value_usd
-          }))
-        },
         fertilizers_bulk: {
-          label: data.fertilizers_bulk.product_label,
+          label: "Fertilizers",
           year: data.fertilizers_bulk.year,
           partners: data.fertilizers_bulk.rows.map(row => ({
             country: row.partner,
-            valueUSD: row.value_usd
+            valueUSD: row.value_usd,
+            qtyKg: row.quantity_kg
+          }))
+        },
+        phosphoric_acid: {
+          label: "Phosphoric acid",
+          year: data.phosphoric_acid.year,
+          partners: data.phosphoric_acid.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd,
+            qtyKg: row.quantity_kg
+          }))
+        },
+        phosphate_rock: {
+          label: "Phosphate rock",
+          year: data.phosphate_rock_raw.year,
+          partners: data.phosphate_rock_raw.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd,
+            qtyKg: row.quantity_kg
           }))
         }
       },
       imports: {
-        specialty_imports: {
-          label: data.specialty_imports.product_label,
+        specialty: {
+          label: "Specialty phosphates",
           year: data.specialty_imports.year,
           partners: data.specialty_imports.rows.map(row => ({
             country: row.partner,
-            valueUSD: row.value_usd
+            valueUSD: row.value_usd,
+            qtyKg: row.quantity_kg
           }))
         }
       }

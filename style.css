@@ -30,10 +30,10 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
   left: 16px; top: 16px;
   width: 340px;
 }
-.intro h2{ margin: 0 0 10px 0; font-size: 16px; text-align: center; }
-.intro ul{ margin: 0 0 10px 0; padding-left: 16px; line-height: 1.35; font-size: 13px; color:#222; }
-.intro li{ margin-bottom: 6px; }
-.sources-inline{ font-size: 12px; color:#333; }
+.intro h2{ margin: 0 0 6px 0; font-size: 16px; text-align: center; }
+.intro ul{ margin: 0 0 6px 0; padding-left: 16px; line-height: 1.25; font-size: 12px; color:#222; }
+.intro li{ margin-bottom: 3px; }
+.sources-inline{ font-size: 10px; color:#333; }
 .sources-inline a{ color:#2d6cdf; text-decoration:none; }
 .sources-inline a:hover{ text-decoration:underline; }
 
