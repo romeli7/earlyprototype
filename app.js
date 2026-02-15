@@ -172,6 +172,30 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const sitesLayer = L.layerGroup().addTo(map);
 const partnersLayer = L.layerGroup().addTo(map);
 const flowsLayer = L.layerGroup().addTo(map);
+const domesticLayer = L.layerGroup().addTo(map);
+
+// Domestic infrastructure links within Morocco
+const DOMESTIC_LINKS = [
+  // Gantour basin to Safi
+  { from:"Benguerir", to:"Safi", kind:"rail_or_haul", label:"Domestic link: Gantour → Safi" },
+  { from:"Youssoufia", to:"Safi", kind:"rail_or_haul", label:"Domestic link: Gantour → Safi" },
+
+  // Khouribga to Jorf Lasfar via slurry pipeline
+  { from:"Khouribga", to:"Jorf Lasfar", kind:"slurry_pipeline", label:"Slurry pipeline: Khouribga → Jorf Lasfar" },
+
+  // Bou Craa to Laâyoune via conveyor
+  { from:"Bou Craa", to:"Laâyoune", kind:"conveyor", label:"Conveyor: Bou Craa → Laâyoune terminal" }
+];
+
+// Domestic link styling
+const DOMESTIC_STYLE = {
+  rail_or_haul: { weight:2, opacity:0.45, dashArray:"3 7" },
+  slurry_pipeline: { weight:3, opacity:0.55, dashArray:null },
+  conveyor: { weight:2, opacity:0.50, dashArray:"8 6" }
+};
+
+// Build site lookup for domestic links
+const siteByName = Object.fromEntries(MOROCCO_SITES.map(s => [s.name, s]));
 let moroccoLayer = null;
 let moroccoFallbackBox = null;
 
@@ -329,7 +353,8 @@ let state = {
   categoryKey: "fertilizers",
   metric: "share",        // share | usd | tonnes
   showSites: true,
-  showFlows: true
+  showFlows: true,
+  showDomestic: true
 };
 
 function getCurrentDataset(){
@@ -366,6 +391,59 @@ function partnerLatLng(country){
 function clearFlows(){
   flowsLayer.clearLayers();
   partnersLayer.clearLayers();
+}
+
+function drawDomesticLinks(){
+  domesticLayer.clearLayers();
+  
+  // Only show domestic links when zoomed in enough
+  if (map.getZoom() < 5) return;
+  
+  if (!state.showDomestic) return;
+  
+  // Get current category for smart highlighting
+  const currentCategory = state.categoryKey;
+  
+  for (const link of DOMESTIC_LINKS){
+    const fromSite = siteByName[link.from];
+    const toSite = siteByName[link.to];
+    
+    if (!fromSite || !toSite) continue;
+    
+    // Determine if this link should be highlighted based on category
+    let isHighlighted = false;
+    if (currentCategory === "phosphate_rock") {
+      // Highlight mine nodes only
+      isHighlighted = fromSite.type === "mine" || toSite.type === "mine";
+    } else if (currentCategory === "phosphoric_acid") {
+      // Highlight Khouribga → Jorf Lasfar
+      isHighlighted = (link.from === "Khouribga" && link.to === "Jorf Lasfar");
+    } else if (currentCategory === "fertilizers_bulk") {
+      // Highlight Jorf Lasfar and Safi connections
+      isHighlighted = link.to === "Jorf Lasfar" || link.to === "Safi";
+    }
+    // specialty_imports: no highlighting (represents leakage abroad)
+    
+    const style = DOMESTIC_STYLE[link.kind];
+    const weight = isHighlighted ? style.weight + 1 : style.weight;
+    const opacity = isHighlighted ? Math.min(style.opacity + 0.2, 1) : style.opacity;
+    
+    const polyline = L.polyline([
+      [fromSite.lat, fromSite.lng],
+      [toSite.lat, toSite.lng]
+    ], {
+      color: "#666",
+      weight: weight,
+      opacity: opacity,
+      dashArray: style.dashArray
+    }).addTo(domesticLayer);
+    
+    polyline.bindTooltip(link.label, {
+      permanent: false,
+      direction: 'center',
+      className: 'domestic-tooltip'
+    });
+  }
 }
 
 function render(){
@@ -457,6 +535,9 @@ function render(){
     const arrow = addArrowHead(arrowPos, angle - Math.PI/2, color);
     flowsLayer.addLayer(arrow);
   }
+  
+  // Draw domestic infrastructure links
+  drawDomesticLinks();
 }
 
 /* ===============================
@@ -467,6 +548,7 @@ const categorySelect = document.getElementById("categorySelect");
 const metricSelect = document.getElementById("metricSelect");
 const toggleSites = document.getElementById("toggleSites");
 const toggleFlows = document.getElementById("toggleFlows");
+const toggleDomestic = document.getElementById("toggleDomestic");
 
 // Tab click
 tabs.forEach(btn => {
@@ -526,6 +608,11 @@ toggleSites.addEventListener("change", () => {
 
 toggleFlows.addEventListener("change", () => {
   state.showFlows = toggleFlows.checked;
+  render();
+});
+
+toggleDomestic.addEventListener("change", () => {
+  state.showDomestic = toggleDomestic.checked;
   render();
 });
 
