@@ -42,13 +42,13 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
   right: 16px; top: 16px;
   width: 280px;
 }
-.controls h3{ margin:0 0 10px 0; font-size:16px; }
+.controls h3{ margin:0 0 8px 0; font-size:14px; }
 
-.tabs{ display:flex; gap:8px; margin-bottom: 10px; }
+.tabs{ display:flex; gap:6px; margin-bottom: 8px; }
 .tab{
   flex:1;
-  padding:8px 10px;
-  border-radius: 10px;
+  padding:6px 8px;
+  border-radius: 8px;
   border:1px solid #ddd;
   background:#fff;
   cursor:pointer;
@@ -60,23 +60,23 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
   color:#2d6cdf;
 }
 
-.control-block{ margin-bottom: 12px; }
-.label{ font-size: 12px; color:#444; margin-bottom:6px; font-weight: 600; }
+.control-block{ margin-bottom: 10px; }
+.label{ font-size: 11px; color:#444; margin-bottom:4px; font-weight: 600; }
 select{
   width:100%;
-  padding:8px 10px;
-  border-radius: 10px;
+  padding:6px 8px;
+  border-radius: 8px;
   border:1px solid #ddd;
   background:#fff;
 }
 .controls label{
-  display:flex; gap:8px;
+  display:flex; gap:6px;
   align-items:center;
-  font-size: 13px;
+  font-size: 12px;
   color:#222;
-  margin: 6px 0;
+  margin: 4px 0;
 }
-.hint{ font-size: 12px; color:#444; margin-top: 6px; }
+.hint{ font-size: 11px; color:#444; margin-top: 4px; }
 
 /* Legend panel - set to 280px to match other panels */
 .legend{
