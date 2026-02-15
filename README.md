@@ -64,3 +64,5 @@ This visualization is provided for educational and research purposes.
 ---
 
 **Live visualization**: [View the interactive map](https://romeli7.github.io/earlyprototype/)
+
+This visualization is provided for educational and research purposes. For inquiries, contact: ro.elidrissi1@gmail.com
