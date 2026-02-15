@@ -36,18 +36,13 @@ fetch('data/trade_flows.json')
         }
       },
       imports: {
-        specialty: {
-          label: "Specialty phosphates (higher-value, imported)",
-          year: 2022,
-          partners: [
-            { country:"China", valueKUSD:1463.17, qtyKg:740825 },
-            { country:"Israel", valueKUSD:346.00, qtyKg:136059 },
-            { country:"European Union", valueKUSD:173.37, qtyKg:79159 },
-            { country:"Belgium", valueKUSD:140.79, qtyKg:72000 },
-            { country:"Spain", valueKUSD:23.70, qtyKg:6225 },
-            { country:"Germany", valueKUSD:8.84, qtyKg:955 },
-            { country:"Netherlands", valueKUSD:0.09, qtyKg:28 }
-          ]
+        specialty_imports: {
+          label: data.specialty_imports.product_label,
+          year: data.specialty_imports.year,
+          partners: data.specialty_imports.rows.map(row => ({
+            country: row.partner,
+            valueUSD: row.value_usd
+          }))
         }
       }
     };
@@ -489,11 +484,11 @@ function rebuildCategories(){
   // Reorder categories: fertilizers first for exports
   let orderedCats = [...cats];
   if (state.tab === "exports") {
-    // Move fertilizers to first position if it exists
-    const fertIndex = orderedCats.indexOf("fertilizers");
+    // Move fertilizers_bulk to first position if it exists
+    const fertIndex = orderedCats.indexOf("fertilizers_bulk");
     if (fertIndex !== -1) {
       orderedCats.splice(fertIndex, 1);
-      orderedCats.unshift("fertilizers");
+      orderedCats.unshift("fertilizers_bulk");
     }
   }
   
