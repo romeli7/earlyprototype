@@ -26,6 +26,7 @@ html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Seg
   z-index: 500;
 }
 
+/* Intro panel - increased to 340px for better readability */
 .intro{
   left: 16px; top: 16px;
   width: 340px;
@@ -77,6 +78,7 @@ select{
 }
 .hint{ font-size: 12px; color:#444; margin-top: 6px; }
 
+/* Legend panel - increased to 340px to match intro panel */
 .legend{
   left: 16px; bottom: 16px;
   width: 340px;
